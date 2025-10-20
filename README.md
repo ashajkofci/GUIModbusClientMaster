@@ -101,8 +101,6 @@ python3 modbus_gui.py
 
 ### Command-Line Interface (CLI)
 
-### Command-Line Interface (CLI)
-
 For automation or scripting, use the command-line interface.
 
 #### Basic Syntax
