@@ -14,13 +14,22 @@ A cross-platform tool for testing Modbus TCP communication. Available in both **
 - ✅ Real-time connection status
 - ✅ Command-line interface (CLI) also available
 
-## Requirements
+## Download Pre-built Executables
+
+If you don't want to install Python and dependencies, you can download pre-built executables:
+
+- **Windows**: Download `ModbusTCPMaster.exe` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) (look for the latest successful build)
+- **macOS**: Download `ModbusTCPMaster.dmg` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) (look for the latest successful build)
+
+The executables are automatically built on every commit and can be downloaded from the Actions tab.
+
+## Requirements (For Running from Source)
 
 - Python 3.7 or higher
 - pymodbus library
 - tkinter (for GUI - usually included with Python)
 
-## Installation
+## Installation (For Running from Source)
 
 1. Clone this repository or download the files
 2. Install dependencies:
