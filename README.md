@@ -18,10 +18,13 @@ A cross-platform tool for testing Modbus TCP communication. Available in both **
 
 If you don't want to install Python and dependencies, you can download pre-built executables:
 
-- **Windows**: Download `ModbusTCPMaster.exe` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) (look for the latest successful build)
-- **macOS**: Download `ModbusTCPMaster.dmg` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) (look for the latest successful build)
+- **Windows**: Download `ModbusTCPMaster.exe` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) or from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
+- **macOS**: Download `ModbusTCPMaster.dmg` from the [GitHub Actions artifacts](https://github.com/ashajkofci/GUIModbusClientMaster/actions) or from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
 
-The executables are automatically built on every commit and can be downloaded from the Actions tab.
+The executables are automatically built:
+- On every commit (available in Actions artifacts for 30 days)
+- For each release (permanently available in the Releases section)
+- On-demand via the "Build All Platforms" workflow (manually triggered)
 
 ## Requirements (For Running from Source)
 
