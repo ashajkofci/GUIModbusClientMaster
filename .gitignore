@@ -38,3 +38,6 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Screenshots (keep the GUI screenshots)
+!screenshots_*.png

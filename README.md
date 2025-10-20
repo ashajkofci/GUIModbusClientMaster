@@ -1,20 +1,24 @@
 # Modbus TCP Master
 
-A cross-platform command-line tool for testing Modbus TCP communication. This tool allows you to read a range of holding registers and write uint16 values to individual registers.
+A cross-platform tool for testing Modbus TCP communication. Available in both **GUI** and **CLI** versions. This tool allows you to read a range of holding registers and write uint16 values to individual registers.
 
 ## Features
 
+- ✅ **Graphical User Interface (GUI)** - Easy-to-use cross-platform interface
 - ✅ Read a range of holding registers
 - ✅ Write uint16 values (0-65535) to registers
 - ✅ Cross-platform compatibility (Windows, Linux, macOS)
 - ✅ Support for custom TCP ports and unit IDs
 - ✅ Automatic write verification
 - ✅ Clear formatted output with decimal and hexadecimal values
+- ✅ Real-time connection status
+- ✅ Command-line interface (CLI) also available
 
 ## Requirements
 
 - Python 3.7 or higher
 - pymodbus library
+- tkinter (for GUI - usually included with Python)
 
 ## Installation
 
@@ -31,9 +35,77 @@ Or install manually:
 pip install pymodbus
 ```
 
+**Note for Linux users:** You may need to install tkinter separately:
+```bash
+# Ubuntu/Debian
+sudo apt-get install python3-tk
+
+# Fedora/RHEL
+sudo dnf install python3-tkinter
+```
+
 ## Usage
 
-### Basic Syntax
+### GUI Application (Recommended)
+
+The GUI provides an intuitive interface for interacting with Modbus TCP devices.
+
+**Start the GUI:**
+
+```bash
+python modbus_gui.py
+```
+
+or on some systems:
+
+```bash
+python3 modbus_gui.py
+```
+
+**GUI Features:**
+
+1. **Connection Settings**
+   - Enter IP address of the Modbus server
+   - Configure TCP port (default: 502)
+   - Set Modbus unit/slave ID (default: 1)
+   - Connect/Disconnect button with status indicator
+
+2. **Read Registers**
+   - Enter start address
+   - Specify number of registers to read
+   - Click "Read Registers" to fetch values
+   - Results display in both decimal and hexadecimal format
+
+3. **Write Register**
+   - Enter register address
+   - Enter uint16 value (0-65535)
+   - Click "Write Register" to write value
+   - Automatic verification of written value
+
+4. **Output Window**
+   - Real-time logging of all operations
+   - Timestamp for each action
+   - Color-coded status indicators (✓ success, ✗ error, ℹ info)
+   - Clear button to reset output
+
+**GUI Screenshots:**
+
+![GUI Connected](screenshots_gui_connected.png)
+*GUI interface after connecting to a Modbus server*
+
+![GUI Reading Registers](screenshots_gui_reading.png)
+*Reading multiple registers with formatted output*
+
+![GUI Writing Register](screenshots_gui_writing.png)
+*Writing a value to a register with automatic verification*
+
+### Command-Line Interface (CLI)
+
+### Command-Line Interface (CLI)
+
+For automation or scripting, use the command-line interface.
+
+#### Basic Syntax
 
 ```bash
 python modbus_master.py --host <IP_ADDRESS> [options] <operation>
