@@ -49,18 +49,21 @@ class ModbusGUI:
         self.ip_var = tk.StringVar(value="127.0.0.1")
         ip_entry = ttk.Entry(conn_frame, textvariable=self.ip_var, width=20)
         ip_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        ip_entry.bind('<Return>', lambda e: self.toggle_connection())
         
         # Port
         ttk.Label(conn_frame, text="Port:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.port_var = tk.StringVar(value="502")
         port_entry = ttk.Entry(conn_frame, textvariable=self.port_var, width=10)
         port_entry.grid(row=0, column=3, sticky=tk.W, padx=(0, 10))
+        port_entry.bind('<Return>', lambda e: self.toggle_connection())
         
         # Unit ID
         ttk.Label(conn_frame, text="Unit ID:").grid(row=0, column=4, sticky=tk.W, padx=(0, 5))
         self.unit_var = tk.StringVar(value="1")
         unit_entry = ttk.Entry(conn_frame, textvariable=self.unit_var, width=10)
         unit_entry.grid(row=0, column=5, sticky=tk.W, padx=(0, 10))
+        unit_entry.bind('<Return>', lambda e: self.toggle_connection())
         
         # Connect/Disconnect Button
         self.connect_btn = ttk.Button(conn_frame, text="Connect", command=self.toggle_connection)
@@ -82,12 +85,14 @@ class ModbusGUI:
         self.read_start_var = tk.StringVar(value="0")
         read_start_entry = ttk.Entry(read_frame, textvariable=self.read_start_var, width=15)
         read_start_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        read_start_entry.bind('<Return>', lambda e: self.read_registers() if self.connected else None)
         
         # Count
         ttk.Label(read_frame, text="Count:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.read_count_var = tk.StringVar(value="10")
         read_count_entry = ttk.Entry(read_frame, textvariable=self.read_count_var, width=15)
         read_count_entry.grid(row=0, column=3, sticky=(tk.W, tk.E), padx=(0, 10))
+        read_count_entry.bind('<Return>', lambda e: self.read_registers() if self.connected else None)
         
         # Read Button
         self.read_btn = ttk.Button(read_frame, text="Read Registers", command=self.read_registers, state=tk.DISABLED)
@@ -104,12 +109,14 @@ class ModbusGUI:
         self.write_addr_var = tk.StringVar(value="0")
         write_addr_entry = ttk.Entry(write_frame, textvariable=self.write_addr_var, width=15)
         write_addr_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        write_addr_entry.bind('<Return>', lambda e: self.write_register() if self.connected else None)
         
         # Value
         ttk.Label(write_frame, text="Value(s) (0-65535):").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.write_value_var = tk.StringVar(value="0")
         write_value_entry = ttk.Entry(write_frame, textvariable=self.write_value_var, width=15)
         write_value_entry.grid(row=0, column=3, sticky=(tk.W, tk.E), padx=(0, 10))
+        write_value_entry.bind('<Return>', lambda e: self.write_register() if self.connected else None)
         
         # Write Button
         self.write_btn = ttk.Button(write_frame, text="Write Register", command=self.write_register, state=tk.DISABLED)
