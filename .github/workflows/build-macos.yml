@@ -1,0 +1,74 @@
+name: Build macOS Application
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build macOS app bundle with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "ModbusTCPMaster" modbus_gui.py
+        
+    - name: Install create-dmg
+      run: |
+        brew install create-dmg
+        
+    - name: Create DMG
+      run: |
+        # Create a folder for the DMG contents
+        mkdir -p dmg-contents
+        
+        # Copy the app bundle to the DMG folder
+        cp -r dist/ModbusTCPMaster.app dmg-contents/
+        
+        # Create the DMG
+        create-dmg \
+          --volname "Modbus TCP Master" \
+          --volicon "dmg-contents/ModbusTCPMaster.app/Contents/Resources/icon-windowed.icns" \
+          --window-pos 200 120 \
+          --window-size 800 400 \
+          --icon-size 100 \
+          --icon "ModbusTCPMaster.app" 200 190 \
+          --hide-extension "ModbusTCPMaster.app" \
+          --app-drop-link 600 185 \
+          "ModbusTCPMaster.dmg" \
+          "dmg-contents/" || true
+        
+        # If create-dmg with all options fails, try a simpler version
+        if [ ! -f "ModbusTCPMaster.dmg" ]; then
+          create-dmg \
+            --volname "Modbus TCP Master" \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "ModbusTCPMaster.dmg" \
+            "dmg-contents/"
+        fi
+        
+    - name: Upload macOS DMG
+      uses: actions/upload-artifact@v4
+      with:
+        name: ModbusTCPMaster-macOS
+        path: ModbusTCPMaster.dmg
+        retention-days: 30
