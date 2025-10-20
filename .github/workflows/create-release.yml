@@ -1,0 +1,322 @@
+name: Create Release with All Executables
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Determine next version
+      id: version
+      run: |
+        # Get the latest tag, or use 1.0.0 if no tags exist
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "Latest tag: $LATEST_TAG"
+        
+        # Remove 'v' prefix if present
+        VERSION=${LATEST_TAG#v}
+        
+        # Split version into major.minor.patch
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+        
+        # Increment based on input
+        case "${{ github.event.inputs.version_bump }}" in
+          major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+          minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+          patch)
+            PATCH=$((PATCH + 1))
+            ;;
+        esac
+        
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+        echo "New version: $NEW_VERSION"
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+  build-windows:
+    needs: prepare-release
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Windows" modbus_gui.py
+        
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-executable
+        path: dist/ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Windows.exe
+        retention-days: 1
+
+  build-macos:
+    needs: prepare-release
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build macOS app bundle with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "ModbusTCPMaster" modbus_gui.py
+        
+    - name: Install create-dmg
+      run: |
+        brew install create-dmg
+        
+    - name: Create DMG
+      run: |
+        # Create a folder for the DMG contents
+        mkdir -p dmg-contents
+        
+        # Copy the app bundle to the DMG folder
+        cp -r dist/ModbusTCPMaster.app dmg-contents/
+        
+        # Create the DMG
+        create-dmg \
+          --volname "Modbus TCP Master" \
+          --window-pos 200 120 \
+          --window-size 800 400 \
+          --icon-size 100 \
+          --icon "ModbusTCPMaster.app" 200 190 \
+          --hide-extension "ModbusTCPMaster.app" \
+          --app-drop-link 600 185 \
+          "ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg" \
+          "dmg-contents/" || true
+        
+        # If create-dmg with all options fails, try a simpler version
+        if [ ! -f "ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg" ]; then
+          create-dmg \
+            --volname "Modbus TCP Master" \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg" \
+            "dmg-contents/"
+        fi
+        
+    - name: Upload macOS DMG
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-dmg
+        path: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg
+        retention-days: 1
+
+  build-linux:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build Linux executable with PyInstaller
+      run: |
+        pyinstaller --onefile --name "ModbusTCPMaster" modbus_gui.py
+        
+    - name: Create DEB package structure
+      run: |
+        VERSION="${{ needs.prepare-release.outputs.version }}"
+        PKG_NAME="modbustcpmaster_${VERSION}_amd64"
+        
+        # Create package directory structure
+        mkdir -p "${PKG_NAME}/DEBIAN"
+        mkdir -p "${PKG_NAME}/usr/local/bin"
+        mkdir -p "${PKG_NAME}/usr/share/applications"
+        mkdir -p "${PKG_NAME}/usr/share/doc/modbustcpmaster"
+        
+        # Copy executable
+        cp dist/ModbusTCPMaster "${PKG_NAME}/usr/local/bin/modbustcpmaster"
+        chmod +x "${PKG_NAME}/usr/local/bin/modbustcpmaster"
+        
+        # Create control file
+        cat > "${PKG_NAME}/DEBIAN/control" << EOF
+        Package: modbustcpmaster
+        Version: ${VERSION}
+        Section: utils
+        Priority: optional
+        Architecture: amd64
+        Maintainer: Modbus TCP Master Project <noreply@github.com>
+        Description: Modbus TCP Master GUI Application
+         A cross-platform tool for testing Modbus TCP communication.
+         Available as a GUI application for reading and writing Modbus registers.
+        Depends: python3, python3-tk
+        EOF
+        
+        # Create desktop entry
+        cat > "${PKG_NAME}/usr/share/applications/modbustcpmaster.desktop" << EOF
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=Modbus TCP Master
+        Comment=Modbus TCP Master GUI
+        Exec=/usr/local/bin/modbustcpmaster
+        Icon=utilities-terminal
+        Terminal=false
+        Categories=Utility;Network;
+        EOF
+        
+        # Copy documentation
+        cp README.md "${PKG_NAME}/usr/share/doc/modbustcpmaster/" || true
+        
+        # Build DEB package
+        dpkg-deb --build "${PKG_NAME}"
+        
+        # Rename to include version in filename
+        mv "${PKG_NAME}.deb" "ModbusTCPMaster-v${VERSION}-Linux.deb"
+        
+    - name: Upload Linux DEB
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-deb
+        path: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Linux.deb
+        retention-days: 1
+
+  create-release:
+    needs: [prepare-release, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Display artifact structure
+      run: |
+        ls -R artifacts/
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ needs.prepare-release.outputs.version }}
+        release_name: Release v${{ needs.prepare-release.outputs.version }}
+        body: |
+          ## Modbus TCP Master v${{ needs.prepare-release.outputs.version }}
+          
+          ### Downloads
+          
+          - **Windows**: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Windows.exe
+          - **macOS**: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg
+          - **Linux**: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Linux.deb
+          
+          ### Installation
+          
+          #### Windows
+          Download the .exe file and run it directly. No installation required.
+          
+          #### macOS
+          Download the .dmg file, open it, and drag the application to your Applications folder.
+          
+          #### Linux (Debian/Ubuntu)
+          ```bash
+          sudo dpkg -i ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Linux.deb
+          sudo apt-get install -f  # Install dependencies if needed
+          ```
+          
+          ### Changelog
+          
+          Automated release with all platform executables.
+        draft: false
+        prerelease: false
+        
+    - name: Upload Windows executable to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/windows-executable/ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Windows.exe
+        asset_name: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Windows.exe
+        asset_content_type: application/octet-stream
+        
+    - name: Upload macOS DMG to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/macos-dmg/ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg
+        asset_name: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-macOS.dmg
+        asset_content_type: application/octet-stream
+        
+    - name: Upload Linux DEB to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: artifacts/linux-deb/ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Linux.deb
+        asset_name: ModbusTCPMaster-v${{ needs.prepare-release.outputs.version }}-Linux.deb
+        asset_content_type: application/octet-stream
