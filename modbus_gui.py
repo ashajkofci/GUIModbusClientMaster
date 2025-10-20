@@ -7,6 +7,7 @@ A graphical tool to read and write Modbus TCP holding registers.
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import threading
+import time
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
@@ -105,7 +106,7 @@ class ModbusGUI:
         write_addr_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
         
         # Value
-        ttk.Label(write_frame, text="Value (0-65535):").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
+        ttk.Label(write_frame, text="Value(s) (0-65535):").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         self.write_value_var = tk.StringVar(value="0")
         write_value_entry = ttk.Entry(write_frame, textvariable=self.write_value_var, width=15)
         write_value_entry.grid(row=0, column=3, sticky=(tk.W, tk.E), padx=(0, 10))
@@ -293,25 +294,52 @@ class ModbusGUI:
         
         try:
             address = int(self.write_addr_var.get().strip())
-            value = int(self.write_value_var.get().strip())
+            raw_value = self.write_value_var.get().strip()
             unit_id = int(self.unit_var.get().strip())
             
             if address < 0 or address > 65535:
                 messagebox.showerror("Error", "Address must be between 0 and 65535")
                 return
             
-            if value < 0 or value > 65535:
-                messagebox.showerror("Error", "Value must be between 0 and 65535 (uint16)")
+            if not raw_value:
+                messagebox.showerror("Error", "Please enter a value to write")
                 return
-            
-            self.log_message(f"Writing value {value} (0x{value:04X}) to register {address}...")
+
+            # Support comma or whitespace separated lists; allow 0x-prefixed numbers.
+            tokens = [token for token in raw_value.replace(",", " ").split() if token]
+            if not tokens:
+                messagebox.showerror("Error", "Please enter a valid value")
+                return
+
+            try:
+                values = [int(token, 0) for token in tokens]
+            except ValueError:
+                messagebox.showerror("Error", "Values must be integers (decimal or 0x-prefixed hex)")
+                return
+
+            for val in values:
+                if val < 0 or val > 65535:
+                    messagebox.showerror("Error", "Values must be between 0 and 65535 (uint16)")
+                    return
+
+            values = tuple(values)
+            multiple_values = len(values) > 1
+
+            if multiple_values:
+                pretty = ", ".join(f"{v} (0x{v:04X})" for v in values)
+                self.log_message(
+                    f"Writing {len(values)} value(s) [{pretty}] starting at register {address}..."
+                )
+            else:
+                value = values[0]
+                self.log_message(f"Writing value {value} (0x{value:04X}) to register {address}...")
             
             # Run in thread to avoid blocking UI
             def write_thread():
                 try:
-                    response = self.client.write_register(
+                    response = self.client.write_registers(
                         address=address,
-                        value=value,
+                        values=list(values),
                         slave=unit_id
                     )
                     
@@ -319,22 +347,59 @@ class ModbusGUI:
                         self.root.after(0, lambda: self.log_message(f"Error writing register: {response}", "error"))
                         self.root.after(0, lambda: messagebox.showerror("Write Error", str(response)))
                     else:
-                        self.root.after(0, lambda: self.log_message(f"Successfully wrote {value} to register {address}", "success"))
+                        if multiple_values:
+                            self.root.after(
+                                0,
+                                lambda: self.log_message(
+                                    f"Successfully wrote {len(values)} value(s) starting at register {address}",
+                                    "success"
+                                )
+                            )
+                        else:
+                            value = values[0]
+                            self.root.after(
+                                0,
+                                lambda: self.log_message(
+                                    f"Successfully wrote {value} to register {address}",
+                                    "success"
+                                )
+                            )
                         
-                        # Verify write
+                        # Verify write (allow device time to update)
+                        time.sleep(0.2)
                         self.root.after(0, lambda: self.log_message("Verifying write...", "info"))
                         verify_response = self.client.read_holding_registers(
                             address=address,
-                            count=1,
+                            count=len(values),
                             slave=unit_id
                         )
                         
-                        if not verify_response.isError() and len(verify_response.registers) > 0:
-                            read_value = verify_response.registers[0]
-                            if read_value == value:
-                                self.root.after(0, lambda: self.log_message(f"Verification successful: register {address} = {read_value}", "success"))
+                        if verify_response.isError():
+                            self.root.after(0, lambda: self.log_message(f"Verify read failed: {verify_response}", "error"))
+                            return
+
+                        read_back = verify_response.registers[: len(values)]
+                        if len(read_back) < len(values):
+                            self.root.after(0, lambda: self.log_message("Verification returned insufficient data", "error"))
+                            return
+
+                        if list(read_back) == list(values):
+                            if multiple_values:
+                                formatted = ", ".join(
+                                    f"{address + idx}={val} (0x{val:04X})"
+                                    for idx, val in enumerate(read_back)
+                                )
+                                self.root.after(0, lambda: self.log_message(f"Verification successful: {formatted}", "success"))
                             else:
-                                self.root.after(0, lambda: self.log_message(f"Warning: read back value {read_value} differs from written value {value}", "error"))
+                                self.root.after(0, lambda: self.log_message(f"Verification successful: register {address} = {read_back[0]}", "success"))
+                        else:
+                            if multiple_values:
+                                expected = ", ".join(str(v) for v in values)
+                                observed = ", ".join(str(v) for v in read_back)
+                                self.root.after(0, lambda: self.log_message(f"Warning: read back values [{observed}] differ from written values [{expected}]", "error"))
+                            else:
+                                value = values[0]
+                                self.root.after(0, lambda: self.log_message(f"Warning: read back value {read_back[0]} differs from written value {value}", "error"))
                         
                 except ModbusException as e:
                     self.root.after(0, lambda: self.log_message(f"Modbus error: {e}", "error"))
