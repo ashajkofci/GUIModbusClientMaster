@@ -14,13 +14,48 @@ A cross-platform graphical tool for testing Modbus TCP communication. This tool 
 - ✅ Real-time connection status
 - ✅ Timestamped operation logging
 
-## Requirements
+## Download Pre-built Executables
+
+If you don't want to install Python and dependencies, you can download pre-built executables:
+
+- **Windows**: Download `.exe` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
+- **macOS**: Download `.dmg` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
+- **Linux (Debian/Ubuntu)**: Download `.deb` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
+
+The executables are automatically built:
+- On every commit to main/master (available in Actions artifacts for 30 days)
+- Via the "Create Release" workflow - creates a new versioned release with all platform executables (Windows .exe, macOS .dmg, Linux .deb)
+- Version numbers are automatically incremented (e.g., v1.0.0 → v1.0.1 → v1.0.2)
+
+### Creating a New Release
+
+To create a new release with all executables:
+1. Go to the [Actions tab](https://github.com/ashajkofci/GUIModbusClientMaster/actions)
+2. Click on "Create Release with All Executables"
+3. Click "Run workflow"
+4. Select version bump type (patch/minor/major)
+5. The workflow will build for all platforms and create a tagged release
+
+### Linux Installation
+
+After downloading the `.deb` file:
+```bash
+sudo dpkg -i ModbusTCPMaster-v*.deb
+sudo apt-get install -f  # Install dependencies if needed
+```
+
+Then run from terminal:
+```bash
+modbustcpmaster
+```
+
+## Requirements (For Running from Source)
 
 - Python 3.7 or higher
 - pymodbus library
 - tkinter (for GUI - usually included with Python)
 
-## Installation
+## Installation (For Running from Source)
 
 1. Clone this repository or download the files
 2. Install dependencies:
