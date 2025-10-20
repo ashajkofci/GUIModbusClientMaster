@@ -1,18 +1,18 @@
-# Modbus TCP Master
+# Modbus TCP Master GUI
 
-A cross-platform tool for testing Modbus TCP communication. Available in both **GUI** and **CLI** versions. This tool allows you to read a range of holding registers and write uint16 values to individual registers.
+A cross-platform graphical tool for testing Modbus TCP communication. This tool provides an easy-to-use interface for reading and writing Modbus TCP holding registers.
 
 ## Features
 
 - ✅ **Graphical User Interface (GUI)** - Easy-to-use cross-platform interface
-- ✅ Read a range of holding registers
+- ✅ Read a range of holding registers (up to 125 at once)
 - ✅ Write uint16 values (0-65535) to registers
 - ✅ Cross-platform compatibility (Windows, Linux, macOS)
 - ✅ Support for custom TCP ports and unit IDs
 - ✅ Automatic write verification
 - ✅ Clear formatted output with decimal and hexadecimal values
 - ✅ Real-time connection status
-- ✅ Command-line interface (CLI) also available
+- ✅ Timestamped operation logging
 
 ## Requirements
 
@@ -46,7 +46,7 @@ sudo dnf install python3-tkinter
 
 ## Usage
 
-### GUI Application (Recommended)
+### Starting the GUI Application
 
 The GUI provides an intuitive interface for interacting with Modbus TCP devices.
 
@@ -99,122 +99,115 @@ python3 modbus_gui.py
 ![GUI Writing Register](screenshots_gui_writing.png)
 *Writing a value to a register with automatic verification*
 
-### Command-Line Interface (CLI)
+## User Interface Overview
 
-For automation or scripting, use the command-line interface.
+### 1. Connection Settings (Top Section)
 
-#### Basic Syntax
+**Fields:**
+- **IP Address**: Enter the IP address of your Modbus TCP server (e.g., 192.168.1.100)
+- **Port**: TCP port number (default: 502)
+- **Unit ID**: Modbus unit/slave ID (default: 1)
+- **Connect/Disconnect Button**: Toggles connection state
+- **Status Indicator**: Shows "Connected" (green) or "Disconnected" (red)
 
-```bash
-python modbus_master.py --host <IP_ADDRESS> [options] <operation>
-```
+**Usage:**
+1. Enter the IP address of your Modbus device
+2. Adjust port and unit ID if needed (most devices use port 502 and unit ID 1)
+3. Click "Connect"
+4. Wait for green "Connected" status
+
+### 2. Read Registers Section
+
+**Fields:**
+- **Start Address**: The first register address to read from (e.g., 0)
+- **Count**: Number of consecutive registers to read (e.g., 10)
+- **Read Registers Button**: Executes the read operation
+
+**Usage:**
+1. Ensure you're connected to the server
+2. Enter the starting register address
+3. Enter how many registers you want to read (1-125)
+4. Click "Read Registers"
+5. Results appear in the output window showing:
+   - Register address
+   - Value in decimal format
+   - Value in hexadecimal format
+
+**Example:**
+- Start Address: 0
+- Count: 10
+- Result: Reads registers 0-9
+
+### 3. Write Register Section
+
+**Fields:**
+- **Address**: Single register address to write to (e.g., 5)
+- **Value (0-65535)**: The uint16 value to write
+- **Write Register Button**: Executes the write operation
+
+**Usage:**
+1. Ensure you're connected to the server
+2. Enter the register address
+3. Enter a value between 0 and 65535
+4. Click "Write Register"
+5. The operation is performed and verified automatically
+6. Results appear in the output window
+
+**Important Notes:**
+- Values must be in the range 0-65535 (uint16)
+- The GUI automatically verifies the write by reading back the value
+- Writes to one register at a time
+
+### 4. Output Window (Bottom Section)
+
+**Features:**
+- Real-time logging of all operations
+- Timestamp for each action ([HH:MM:SS])
+- Status indicators:
+  - ✓ Success (green checkmark)
+  - ✗ Error (red X)
+  - ℹ Information (info icon)
+- Scrollable text area
+- **Clear Output Button**: Clears all messages
+
+**Log Messages Include:**
+- Connection/disconnection events
+- Read operations with formatted results
+- Write operations with verification status
+- Error messages with descriptions
+
+## Example Workflow
 
 ### Reading Registers
 
-Read a range of holding registers:
+1. Start the GUI: `python modbus_gui.py`
+2. Enter connection details:
+   - IP Address: 192.168.1.100
+   - Port: 502
+   - Unit ID: 1
+3. Click "Connect"
+4. Configure read operation:
+   - Start Address: 0
+   - Count: 10
+5. Click "Read Registers"
+6. View results in output window
 
-```bash
-python modbus_master.py --host 192.168.1.100 --read <START_ADDRESS> <COUNT>
-```
+### Writing a Register
 
-**Example:** Read 10 registers starting at address 0:
+1. Ensure you're connected (follow steps 1-3 above)
+2. Configure write operation:
+   - Address: 5
+   - Value: 1234
+3. Click "Write Register"
+4. Check output window for:
+   - Write confirmation
+   - Verification result
 
-```bash
-python modbus_master.py --host 192.168.1.100 --read 0 10
-```
+### Disconnecting
 
-**Output:**
-```
-✓ Connected to 192.168.1.100:502
-
-Reading 10 register(s) starting at address 0...
-
-============================================================
-Address    Value (dec)     Value (hex)    
-============================================================
-0          0               0x0000
-1          1234            0x04D2
-2          5678            0x162E
-3          0               0x0000
-...
-============================================================
-✓ Disconnected
-```
-
-### Writing Registers
-
-Write a uint16 value to a single register:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --write <ADDRESS> <VALUE>
-```
-
-**Example:** Write value 1234 to register at address 5:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --write 5 1234
-```
-
-**Output:**
-```
-✓ Connected to 192.168.1.100:502
-
-Writing value 1234 (0x04D2) to register at address 5...
-✓ Successfully wrote 1234 to register 5
-
-Verifying write...
-✓ Verification successful: register 5 = 1234
-✓ Disconnected
-```
-
-### Advanced Options
-
-#### Custom TCP Port
-
-Use a non-standard Modbus TCP port:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --port 5020 --read 0 5
-```
-
-#### Custom Unit ID (Slave ID)
-
-Specify a different Modbus unit/slave ID:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --unit 2 --read 100 10
-```
-
-#### Connection Timeout
-
-Set a custom connection timeout (in seconds):
-
-```bash
-python modbus_master.py --host 192.168.1.100 --timeout 5 --read 0 10
-```
-
-#### Combined Options
-
-```bash
-python modbus_master.py --host 192.168.1.100 --port 5020 --unit 2 --timeout 5 --read 0 10
-```
-
-## Command-Line Arguments
-
-### Required Arguments
-
-- `--host` : IP address or hostname of the Modbus TCP server
-
-### Optional Arguments
-
-- `--port` : TCP port (default: 502)
-- `--unit` : Modbus unit/slave ID (default: 1)
-- `--timeout` : Connection timeout in seconds (default: 3)
-
-### Operations (choose one)
-
-- `--read START COUNT` : Read COUNT registers starting at address START
-- `--write ADDRESS VALUE` : Write VALUE (uint16: 0-65535) to register at ADDRESS
+1. Click "Disconnect" button when finished
+2. Status changes to "Disconnected" (red)
+3. Read and Write buttons become disabled
 
 ## Value Range
 
@@ -223,6 +216,12 @@ When writing registers, values must be in the uint16 range:
 - **Maximum:** 65535 (0xFFFF)
 
 Values outside this range will be rejected with an error message.
+
+## Keyboard Shortcuts
+
+- **Tab**: Navigate between fields
+- **Enter**: Submit current field (same as clicking button)
+- **Escape**: No direct shortcut, use mouse to close window
 
 ## Cross-Platform Compatibility
 
@@ -233,53 +232,66 @@ This tool is designed to work on:
 
 The tool uses pure Python and the pymodbus library, ensuring consistent behavior across all platforms.
 
+### Platform-Specific Notes
+
+**Windows:**
+- Double-click modbus_gui.py or run from Command Prompt
+- tkinter is included with Python installation
+- May need to allow firewall access for Modbus TCP
+
+**Linux:**
+- Run from terminal: `python3 modbus_gui.py`
+- Install tkinter if needed: `sudo apt-get install python3-tk` (Ubuntu/Debian) or `sudo dnf install python3-tkinter` (Fedora/RHEL)
+- May need sudo for ports below 1024
+
+**macOS:**
+- Run from terminal: `python3 modbus_gui.py`
+- tkinter is included with Python installation
+- May need to grant network permissions
+
 ## Testing with a Modbus Simulator
 
-If you don't have a physical Modbus device, you can test with a Modbus simulator:
+If you don't have a physical Modbus device, you can test with the included test server or a Modbus simulator:
 
+**Using the included test server:**
+```bash
+python test_server.py
+```
+This starts a test server on 127.0.0.1:5020 with pre-configured test values.
+
+**Or use a third-party simulator:**
 1. Install a Modbus TCP simulator/server (e.g., ModRSsim2, pymodbus simulator)
 2. Configure it to listen on the desired port (default 502)
-3. Run the modbus_master.py commands against the simulator
+3. Connect the GUI to the simulator's IP address and port
 
-## Examples
+## Tips and Best Practices
 
-### Example 1: Quick Register Check
-
-Read first 5 registers:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --read 0 5
-```
-
-### Example 2: Set Register Value
-
-Write maximum uint16 value:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --write 0 65535
-```
-
-### Example 3: Read Multiple Register Ranges
-
-Read registers 0-9:
-```bash
-python modbus_master.py --host 192.168.1.100 --read 0 10
-```
-
-Read registers 100-104:
-```bash
-python modbus_master.py --host 192.168.1.100 --read 100 5
-```
-
-### Example 4: Different Slave Device
-
-Access a different device on the same server:
-
-```bash
-python modbus_master.py --host 192.168.1.100 --unit 3 --read 0 10
-```
+- **Connection Issues**: Check IP address, port, and network connectivity
+- **Timeout Errors**: Server might be slow or unreachable
+- **Value Errors**: Ensure values are within 0-65535 range
+- **Address Errors**: Valid register addresses are typically 0-65535
+- **Multiple Reads**: You can read up to 125 registers at once
+- **Output History**: Use "Clear Output" to reset the log when needed
+- **Testing**: Use the included `test_server.py` for local testing without physical hardware
 
 ## Troubleshooting
+
+### GUI Won't Start
+
+**Problem**: Window doesn't appear
+**Solution**: 
+- Check if tkinter is installed: `python3 -c "import tkinter"`
+- Install if missing (see Installation section)
+
+### Can't Connect
+
+**Problem**: Connection fails
+**Solutions**:
+- Verify IP address is correct
+- Check if Modbus server is running
+- Verify port number (usually 502)
+- Check firewall settings
+- Try pinging the server: `ping <ip_address>`
 
 ### Connection Refused
 - Verify the server IP address and port
@@ -287,14 +299,32 @@ python modbus_master.py --host 192.168.1.100 --unit 3 --read 0 10
 - Verify firewall settings allow TCP connections on the Modbus port
 
 ### Timeout Errors
-- Increase timeout: `--timeout 10`
+- Server might be slow or unreachable
 - Check network connectivity
 - Verify the server is responding
+
+### Write Verification Fails
+
+**Problem**: Write succeeds but verification shows different value
+**Possible Causes**:
+- Server modified the value
+- Another client changed the value
+- Register is read-only
+- Network delay or packet loss
+
+### Error Messages
+
+Common error messages and their meanings:
+- "Not connected to server": Click Connect first
+- "Invalid port number": Port must be a number (typically 502)
+- "Value must be between 0 and 65535": Enter a valid uint16 value
+- "Count must be between 1 and 125": Adjust register count
+- "Connection error": Check network and server availability
 
 ### Permission Errors
 On Linux, ports below 1024 may require sudo:
 ```bash
-sudo python modbus_master.py --host 192.168.1.100 --port 502 --read 0 10
+sudo python3 modbus_gui.py
 ```
 
 ## License
