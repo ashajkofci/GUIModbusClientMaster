@@ -23,9 +23,9 @@ def run_test_server(host='127.0.0.1', port=5020):
         port: TCP port to listen on
     """
     # Initialize data store with some test values
-    # Create 100 holding registers, starting with some preset values
+    # Create 1000 holding registers to test large reads
     store = ModbusSlaveContext(
-        hr=ModbusSequentialDataBlock(0, [0]*100)
+        hr=ModbusSequentialDataBlock(0, [0]*1000)
     )
     
     # Set some initial test values
