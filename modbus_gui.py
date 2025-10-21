@@ -29,6 +29,15 @@ class ModbusGUI:
         
     def setup_ui(self):
         """Setup the user interface."""
+        # Create menu bar
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about)
+        
         # Main container with padding
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -242,8 +251,8 @@ class ModbusGUI:
             count = int(self.read_count_var.get().strip())
             unit_id = int(self.unit_var.get().strip())
             
-            if count <= 0 or count > 125:
-                messagebox.showerror("Error", "Count must be between 1 and 125")
+            if count <= 0 or count > 1000:
+                messagebox.showerror("Error", "Count must be between 1 and 1000")
                 return
             
             if start_address < 0 or start_address > 65535:
@@ -255,30 +264,51 @@ class ModbusGUI:
             # Run in thread to avoid blocking UI
             def read_thread():
                 try:
-                    response = self.client.read_holding_registers(
-                        address=start_address,
-                        count=count,
-                        slave=unit_id
-                    )
+                    # Modbus protocol limits reads to ~125 registers at once
+                    # Split large reads into chunks of 100 registers with pauses
+                    chunk_size = 100
+                    all_registers = []
                     
-                    if response.isError():
-                        self.root.after(0, lambda: self.log_message(f"Error reading registers: {response}", "error"))
-                        self.root.after(0, lambda: messagebox.showerror("Read Error", str(response)))
-                    else:
-                        registers = response.registers
+                    # Inform user if chunked reading will be used
+                    if count > chunk_size:
+                        num_chunks = (count + chunk_size - 1) // chunk_size
+                        self.root.after(0, lambda: self.log_message(
+                            f"Reading in {num_chunks} chunks of up to {chunk_size} registers...", "info"
+                        ))
+                    
+                    for offset in range(0, count, chunk_size):
+                        current_address = start_address + offset
+                        current_count = min(chunk_size, count - offset)
                         
-                        # Format output
-                        output = "\n" + "="*60 + "\n"
-                        output += f"{'Address':<12} {'Value (dec)':<15} {'Value (hex)'}\n"
-                        output += "="*60 + "\n"
+                        response = self.client.read_holding_registers(
+                            address=current_address,
+                            count=current_count,
+                            slave=unit_id
+                        )
                         
-                        for i, value in enumerate(registers):
-                            addr = start_address + i
-                            output += f"{addr:<12} {value:<15} 0x{value:04X}\n"
+                        if response.isError():
+                            self.root.after(0, lambda r=response: self.log_message(f"Error reading registers: {r}", "error"))
+                            self.root.after(0, lambda r=response: messagebox.showerror("Read Error", str(r)))
+                            return
                         
-                        output += "="*60
+                        all_registers.extend(response.registers)
                         
-                        self.root.after(0, lambda: self.log_message(output, "success"))
+                        # Pause between chunks if there are more to read
+                        if offset + chunk_size < count:
+                            time.sleep(0.2)  # 200ms pause
+                    
+                    # Format output
+                    output = "\n" + "="*60 + "\n"
+                    output += f"{'Address':<12} {'Value (dec)':<15} {'Value (hex)'}\n"
+                    output += "="*60 + "\n"
+                    
+                    for i, value in enumerate(all_registers):
+                        addr = start_address + i
+                        output += f"{addr:<12} {value:<15} 0x{value:04X}\n"
+                    
+                    output += "="*60
+                    
+                    self.root.after(0, lambda: self.log_message(output, "success"))
                         
                 except ModbusException as e:
                     self.root.after(0, lambda: self.log_message(f"Modbus error: {e}", "error"))
@@ -421,6 +451,17 @@ class ModbusGUI:
         except ValueError:
             messagebox.showerror("Error", "Invalid input values. Please enter valid numbers.")
             
+    def show_about(self):
+        """Show about dialog with author, GitHub link, and license information."""
+        about_text = (
+            "Modbus TCP Master GUI\n\n"
+            "Author: Adrian Shajkofci\n\n"
+            "GitHub: https://github.com/ashajkofci/GUIModbusClientMaster\n\n"
+            "License: BSD 3-Clause License\n\n"
+            "A cross-platform graphical tool for testing Modbus TCP communication."
+        )
+        messagebox.showinfo("About Modbus TCP Master", about_text)
+    
     def on_closing(self):
         """Handle window close event."""
         if self.connected:

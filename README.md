@@ -5,7 +5,7 @@ A cross-platform graphical tool for testing Modbus TCP communication. This tool 
 ## Features
 
 - ✅ **Graphical User Interface (GUI)** - Easy-to-use cross-platform interface
-- ✅ Read a range of holding registers (up to 125 at once)
+- ✅ Read a range of holding registers (up to 1000 at once)
 - ✅ Write uint16 values (0-65535) to registers
 - ✅ Cross-platform compatibility (Windows, Linux, macOS)
 - ✅ Support for custom TCP ports and unit IDs
@@ -21,20 +21,6 @@ If you don't want to install Python and dependencies, you can download pre-built
 - **Windows**: Download `.exe` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
 - **macOS**: Download `.dmg` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
 - **Linux (Debian/Ubuntu)**: Download `.deb` file from the [Releases page](https://github.com/ashajkofci/GUIModbusClientMaster/releases)
-
-The executables are automatically built:
-- On every commit to main/master (available in Actions artifacts for 30 days)
-- Via the "Create Release" workflow - creates a new versioned release with all platform executables (Windows .exe, macOS .dmg, Linux .deb)
-- Version numbers are automatically incremented (e.g., v1.0.0 → v1.0.1 → v1.0.2)
-
-### Creating a New Release
-
-To create a new release with all executables:
-1. Go to the [Actions tab](https://github.com/ashajkofci/GUIModbusClientMaster/actions)
-2. Click on "Create Release with All Executables"
-3. Click "Run workflow"
-4. Select version bump type (patch/minor/major)
-5. The workflow will build for all platforms and create a tagged release
 
 ### Linux Installation
 
@@ -161,7 +147,7 @@ python3 modbus_gui.py
 **Usage:**
 1. Ensure you're connected to the server
 2. Enter the starting register address
-3. Enter how many registers you want to read (1-125)
+3. Enter how many registers you want to read (1-1000)
 4. Click "Read Registers"
 5. Results appear in the output window showing:
    - Register address
@@ -305,7 +291,7 @@ This starts a test server on 127.0.0.1:5020 with pre-configured test values.
 - **Timeout Errors**: Server might be slow or unreachable
 - **Value Errors**: Ensure values are within 0-65535 range
 - **Address Errors**: Valid register addresses are typically 0-65535
-- **Multiple Reads**: You can read up to 125 registers at once
+- **Multiple Reads**: You can read up to 1000 registers at once
 - **Output History**: Use "Clear Output" to reset the log when needed
 - **Testing**: Use the included `test_server.py` for local testing without physical hardware
 
@@ -353,7 +339,7 @@ Common error messages and their meanings:
 - "Not connected to server": Click Connect first
 - "Invalid port number": Port must be a number (typically 502)
 - "Value must be between 0 and 65535": Enter a valid uint16 value
-- "Count must be between 1 and 125": Adjust register count
+- "Count must be between 1 and 1000": Adjust register count
 - "Connection error": Check network and server availability
 
 ### Permission Errors
@@ -364,7 +350,11 @@ sudo python3 modbus_gui.py
 
 ## License
 
-This tool is provided as-is for testing and development purposes.
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Adrian Shajkofci
 
 ## Contributing
 
