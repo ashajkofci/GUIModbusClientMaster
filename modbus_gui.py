@@ -8,6 +8,9 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import threading
 import time
+import json
+import os
+from pathlib import Path
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
@@ -26,6 +29,73 @@ class ModbusGUI:
         self.connected = False
         
         self.setup_ui()
+        self.load_config()
+        
+    @staticmethod
+    def get_config_dir():
+        """Get the configuration directory path (cross-platform)."""
+        if os.name == 'nt':  # Windows
+            config_dir = Path(os.environ.get('APPDATA', '~')) / 'ModbusTCPMaster'
+        elif os.name == 'posix':
+            if 'darwin' in os.sys.platform:  # macOS
+                config_dir = Path.home() / 'Library' / 'Application Support' / 'ModbusTCPMaster'
+            else:  # Linux
+                config_dir = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'ModbusTCPMaster'
+        else:
+            # Fallback for unknown systems
+            config_dir = Path.home() / '.modbus_tcp_master'
+        
+        # Create directory if it doesn't exist
+        config_dir.mkdir(parents=True, exist_ok=True)
+        return config_dir
+    
+    @staticmethod
+    def get_config_file():
+        """Get the configuration file path."""
+        return ModbusGUI.get_config_dir() / 'config.json'
+    
+    def save_config(self):
+        """Save current configuration to file."""
+        config = {
+            'ip_address': self.ip_var.get(),
+            'port': self.port_var.get(),
+            'unit_id': self.unit_var.get(),
+            'read_start_address': self.read_start_var.get(),
+            'read_count': self.read_count_var.get(),
+        }
+        
+        try:
+            config_file = self.get_config_file()
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+        except Exception as e:
+            # Don't show error to user, just log it
+            print(f"Failed to save config: {e}")
+    
+    def load_config(self):
+        """Load configuration from file if it exists."""
+        try:
+            config_file = self.get_config_file()
+            if config_file.exists():
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                # Apply loaded values
+                if 'ip_address' in config:
+                    self.ip_var.set(config['ip_address'])
+                if 'port' in config:
+                    self.port_var.set(config['port'])
+                if 'unit_id' in config:
+                    self.unit_var.set(config['unit_id'])
+                if 'read_start_address' in config:
+                    self.read_start_var.set(config['read_start_address'])
+                if 'read_count' in config:
+                    self.read_count_var.set(config['read_count'])
+                
+                self.log_message("Configuration loaded", "info")
+        except Exception as e:
+            # Don't show error to user, just use defaults
+            print(f"Failed to load config: {e}")
         
     def setup_ui(self):
         """Setup the user interface."""
@@ -464,6 +534,7 @@ class ModbusGUI:
     
     def on_closing(self):
         """Handle window close event."""
+        self.save_config()
         if self.connected:
             self.disconnect()
         self.root.destroy()

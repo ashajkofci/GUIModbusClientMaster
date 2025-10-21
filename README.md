@@ -13,6 +13,7 @@ A cross-platform graphical tool for testing Modbus TCP communication. This tool 
 - ✅ Clear formatted output with decimal and hexadecimal values
 - ✅ Real-time connection status
 - ✅ Timestamped operation logging
+- ✅ **Configuration persistence** - Automatically saves and restores settings
 
 ## Download Pre-built Executables
 
@@ -294,6 +295,33 @@ This starts a test server on 127.0.0.1:5020 with pre-configured test values.
 - **Multiple Reads**: You can read up to 1000 registers at once
 - **Output History**: Use "Clear Output" to reset the log when needed
 - **Testing**: Use the included `test_server.py` for local testing without physical hardware
+
+## Configuration Persistence
+
+The application automatically saves your settings and restores them the next time you start the application. This includes:
+
+- **IP Address**: Last used Modbus server IP address
+- **Port**: Last used TCP port number
+- **Unit ID**: Last used Modbus unit/slave ID
+- **Read Start Address**: Last used starting register address for read operations
+- **Read Count**: Last used number of registers to read
+
+### Configuration File Location
+
+The configuration is stored in a platform-specific user directory:
+
+- **Windows**: `%APPDATA%\ModbusTCPMaster\config.json`
+  - Example: `C:\Users\YourName\AppData\Roaming\ModbusTCPMaster\config.json`
+- **macOS**: `~/Library/Application Support/ModbusTCPMaster/config.json`
+  - Example: `/Users/YourName/Library/Application Support/ModbusTCPMaster/config.json`
+- **Linux**: `~/.config/ModbusTCPMaster/config.json`
+  - Example: `/home/username/.config/ModbusTCPMaster/config.json`
+
+The configuration file is automatically created when you close the application and is loaded when you start it. The directory is created automatically and requires no special permissions.
+
+### Resetting Configuration
+
+If you want to reset to default settings, simply delete the configuration file. The application will create a new one with default values on the next start.
 
 ## Troubleshooting
 
