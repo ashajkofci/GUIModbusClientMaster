@@ -264,30 +264,51 @@ class ModbusGUI:
             # Run in thread to avoid blocking UI
             def read_thread():
                 try:
-                    response = self.client.read_holding_registers(
-                        address=start_address,
-                        count=count,
-                        slave=unit_id
-                    )
+                    # Modbus protocol limits reads to ~125 registers at once
+                    # Split large reads into chunks of 100 registers with pauses
+                    chunk_size = 100
+                    all_registers = []
                     
-                    if response.isError():
-                        self.root.after(0, lambda: self.log_message(f"Error reading registers: {response}", "error"))
-                        self.root.after(0, lambda: messagebox.showerror("Read Error", str(response)))
-                    else:
-                        registers = response.registers
+                    # Inform user if chunked reading will be used
+                    if count > chunk_size:
+                        num_chunks = (count + chunk_size - 1) // chunk_size
+                        self.root.after(0, lambda: self.log_message(
+                            f"Reading in {num_chunks} chunks of up to {chunk_size} registers...", "info"
+                        ))
+                    
+                    for offset in range(0, count, chunk_size):
+                        current_address = start_address + offset
+                        current_count = min(chunk_size, count - offset)
                         
-                        # Format output
-                        output = "\n" + "="*60 + "\n"
-                        output += f"{'Address':<12} {'Value (dec)':<15} {'Value (hex)'}\n"
-                        output += "="*60 + "\n"
+                        response = self.client.read_holding_registers(
+                            address=current_address,
+                            count=current_count,
+                            slave=unit_id
+                        )
                         
-                        for i, value in enumerate(registers):
-                            addr = start_address + i
-                            output += f"{addr:<12} {value:<15} 0x{value:04X}\n"
+                        if response.isError():
+                            self.root.after(0, lambda r=response: self.log_message(f"Error reading registers: {r}", "error"))
+                            self.root.after(0, lambda r=response: messagebox.showerror("Read Error", str(r)))
+                            return
                         
-                        output += "="*60
+                        all_registers.extend(response.registers)
                         
-                        self.root.after(0, lambda: self.log_message(output, "success"))
+                        # Pause between chunks if there are more to read
+                        if offset + chunk_size < count:
+                            time.sleep(0.2)  # 200ms pause
+                    
+                    # Format output
+                    output = "\n" + "="*60 + "\n"
+                    output += f"{'Address':<12} {'Value (dec)':<15} {'Value (hex)'}\n"
+                    output += "="*60 + "\n"
+                    
+                    for i, value in enumerate(all_registers):
+                        addr = start_address + i
+                        output += f"{addr:<12} {value:<15} 0x{value:04X}\n"
+                    
+                    output += "="*60
+                    
+                    self.root.after(0, lambda: self.log_message(output, "success"))
                         
                 except ModbusException as e:
                     self.root.after(0, lambda: self.log_message(f"Modbus error: {e}", "error"))
