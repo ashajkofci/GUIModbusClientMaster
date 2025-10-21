@@ -29,6 +29,15 @@ class ModbusGUI:
         
     def setup_ui(self):
         """Setup the user interface."""
+        # Create menu bar
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about)
+        
         # Main container with padding
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -242,8 +251,8 @@ class ModbusGUI:
             count = int(self.read_count_var.get().strip())
             unit_id = int(self.unit_var.get().strip())
             
-            if count <= 0 or count > 125:
-                messagebox.showerror("Error", "Count must be between 1 and 125")
+            if count <= 0 or count > 1000:
+                messagebox.showerror("Error", "Count must be between 1 and 1000")
                 return
             
             if start_address < 0 or start_address > 65535:
@@ -421,6 +430,17 @@ class ModbusGUI:
         except ValueError:
             messagebox.showerror("Error", "Invalid input values. Please enter valid numbers.")
             
+    def show_about(self):
+        """Show about dialog with author, GitHub link, and license information."""
+        about_text = (
+            "Modbus TCP Master GUI\n\n"
+            "Author: Adrian Shajkofci\n\n"
+            "GitHub: https://github.com/ashajkofci/GUIModbusClientMaster\n\n"
+            "License: BSD 3-Clause License\n\n"
+            "A cross-platform graphical tool for testing Modbus TCP communication."
+        )
+        messagebox.showinfo("About Modbus TCP Master", about_text)
+    
     def on_closing(self):
         """Handle window close event."""
         if self.connected:
